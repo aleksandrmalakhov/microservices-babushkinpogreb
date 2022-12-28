@@ -2,7 +2,6 @@ package ru.relex.service.impl;
 
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.relex.dao.AppUserDAO;
 import ru.relex.dao.RawDataDAO;
@@ -50,6 +49,9 @@ public class MainServiceImp implements MainService {
 
         if (message.startsWith(commandPrefix)) {
             var commandIdentifier = message.split(" ")[0].toLowerCase();
+
+            System.out.println("Main service - " + commandIdentifier);
+
             commandContainer.retrieveCommand(commandIdentifier).execute(update);
         } else {
             var telegramUser = update.getMessage().getFrom();
@@ -69,95 +71,65 @@ public class MainServiceImp implements MainService {
 
     @Override
     public void processDocMessage(Update update) {
+        var text = "";
         saveRawData(update);
 
-        var appUser = findOrSaveAppUser(update);
         var chatId = update.getMessage().getChatId();
-        if (isNotAllowToSendContent(chatId, appUser)) {
+        var appUser = userValidated(chatId, update);
+        if (appUser == null) {
             return;
         }
 
         try {
-            AppDocument doc = fileService.processDoc(update.getMessage());
-            String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC);
-            var answer = "Документ успешно загружен! Ссылка для скачивания: " + link;
-
-            sendAnswer(answer, chatId);
+            AppDocument doc = fileService.processDoc(update, appUser);
+            String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC, "doc");
+            text = "Документ успешно загружен! Ссылка для скачивания: " + link;
         } catch (UploadFileException ex) {
             log.error(ex);
-            String error = "К сожалению, загрузка файла не удалась. Повторите попытку позже.";
-
-            sendAnswer(error, chatId);
+            text = "К сожалению, загрузка файла не удалась. Повторите попытку позже.";
         }
-    }
-
-    private boolean isNotAllowToSendContent(Long chatId, AppUser appUser) {
-        var userState = appUser.getUserState();
-        if (!appUser.getIsActive()) {
-            var error = "Зарегистрируйтесь или активируйте свою учетную запись для загрузки контента.";
-            sendAnswer(error, chatId);
-
-            return true;
-        } else if (!BASIC_STATE.equals(userState)) {
-            var error = "Отмените текущую команду с помощью /cancel для отправки файлов.";
-            sendAnswer(error, chatId);
-
-            return true;
-        } else {
-            return false;
-        }
+        producerService.producerAnswer(text, chatId);
     }
 
     @Override
     public void processPhotoMessage(Update update) {
+        var text = "";
         saveRawData(update);
-        var appUser = findOrSaveAppUser(update);
-        var chatId = update.getMessage().getChatId();
 
-        if (isNotAllowToSendContent(chatId, appUser)) {
+        var chatId = update.getMessage().getChatId();
+        var appUser = userValidated(chatId, update);
+        if (appUser == null) {
             return;
         }
 
         try {
-            AppPhoto photo = fileService.processPhoto(update.getMessage());
-            String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO);
-            var answer = "Фото успешно загружено! Ссылка для скачивания: " + link;
-
-            sendAnswer(answer, chatId);
+            AppPhoto photo = fileService.processPhoto(update, appUser);
+            String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO, "photo");
+            text = "Фото успешно загружено! Ссылка для скачивания: " + link;
         } catch (UploadFileException ex) {
             log.error(ex);
-            String error = "К сожалению, загрузка фото не удалась. Повторите попытку позже.";
-
-            sendAnswer(error, chatId);
+            text = "К сожалению, загрузка фото не удалась. Повторите попытку позже.";
         }
+        producerService.producerAnswer(text, chatId);
     }
 
-    private void sendAnswer(String output, Long chatId) {
-        var sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText(output);
-
-        producerService.producerAnswer(sendMessage);
-    }
-
-
-    private AppUser findOrSaveAppUser(Update update) {
+    private AppUser userValidated(Long chatId, Update update) {
         var telegramUser = update.getMessage().getFrom();
-        var persistentAppUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
+        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
 
-        if (persistentAppUser == null) {
-            var transientAppUser = AppUser.builder()
-                    .telegramUserId(telegramUser.getId())
-                    .userName(telegramUser.getUserName())
-                    .firstName(telegramUser.getFirstName())
-                    .lastName(telegramUser.getLastName())
-                    //TODO изменить значение по умолчанию после добавдения регистрации
-                    .isActive(true)
-                    .userState(BASIC_STATE)
-                    .build();
-            return appUserDAO.save(transientAppUser);
+        if (appUser == null) {
+            var error = "Зарегистрируйтесь с помощью команды /start для загрузки контента.";
+            producerService.producerAnswer(error, chatId);
+        } else if (!appUser.getIsActive()) {
+            var error = "Активируйте свою учетную запись для загрузки контента.";
+            producerService.producerAnswer(error, chatId);
+        } else if (!appUser.getUserState().equals(BASIC_STATE)) {
+            var error = "Отмените текущую команду с помощью /cancel для отправки файлов.";
+            producerService.producerAnswer(error, chatId);
+        } else {
+            return appUser;
         }
-        return persistentAppUser;
+        return appUser;
     }
 
     private void saveRawData(Update update) {

@@ -23,4 +23,7 @@ public class AppPhoto {
     @OneToOne
     BinaryContent binaryContent;
     Long fileSize;
+
+    @ManyToOne
+    AppUser appUser;
 }

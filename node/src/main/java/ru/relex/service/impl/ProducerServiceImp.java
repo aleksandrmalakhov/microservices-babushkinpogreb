@@ -18,17 +18,17 @@ public class ProducerServiceImp implements ProducerService {
     }
 
     @Override
-    public void producerAnswer(SendMessage sendMessage) {
-        rabbitTemplate.convertAndSend(ANSWER_MESSAGE, sendMessage);
-    }
-
-    @Override
     public void producerAnswer(String text, Long chatId) {
         var sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(text);
         sendMessage.enableHtml(true);
 
+        producerAnswer(sendMessage);
+    }
+
+    @Override
+    public void producerAnswer(SendMessage sendMessage) {
         rabbitTemplate.convertAndSend(ANSWER_MESSAGE, sendMessage);
     }
 }

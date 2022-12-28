@@ -25,4 +25,7 @@ public class AppDocument {
     BinaryContent binaryContent;
     String mimeType;
     Long fileSize;
+
+    @ManyToOne
+    AppUser appUser;
 }
