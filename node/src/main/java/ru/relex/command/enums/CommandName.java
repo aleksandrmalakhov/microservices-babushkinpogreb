@@ -6,6 +6,7 @@ public enum CommandName {
     HELP("/help"),
     REGISTRATION("/registration"),
     PHOTO("/myphoto"),
+    DOC("/mydoc"),
     CANCEL("/cancel"),
     NO("noCommand"),
     ERROR("error");

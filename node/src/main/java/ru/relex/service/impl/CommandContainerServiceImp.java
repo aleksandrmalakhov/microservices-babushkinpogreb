@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import ru.relex.command.*;
+import ru.relex.dao.AppDocumentDAO;
 import ru.relex.dao.AppPhotoDAO;
 import ru.relex.dao.AppUserDAO;
 import ru.relex.service.CommandContainerService;
@@ -21,6 +22,7 @@ public class CommandContainerServiceImp implements CommandContainerService {
 
     public CommandContainerServiceImp(AppUserDAO appUserDAO,
                                       AppPhotoDAO appPhotoDAO,
+                                      AppDocumentDAO appDocumentDAO,
                                       ProducerService producerService,
                                       FileService fileService) {
         this.commandMap = ImmutableMap.<String, Command>builder()
@@ -30,6 +32,7 @@ public class CommandContainerServiceImp implements CommandContainerService {
                 .put(CANCEL.getCommandName(), new CancelCommand(appUserDAO, producerService))
                 .put(REGISTRATION.getCommandName(), new RegistrationCommand(producerService))
                 .put(PHOTO.getCommandName(), new MyPhotoCommand(appUserDAO, appPhotoDAO, producerService, fileService))
+                .put(DOC.getCommandName(), new MyDocCommand(appUserDAO, appDocumentDAO, fileService, producerService))
                 .put(NO.getCommandName(), new NoCommand(producerService))
                 .put(ERROR.getCommandName(), new ErrorCommand(producerService))
                 .build();
@@ -38,9 +41,6 @@ public class CommandContainerServiceImp implements CommandContainerService {
 
     @Override
     public Command retrieveCommand(String commandIdentifier) {
-
-        System.out.println("Container - " + commandIdentifier);
-
         return commandMap.getOrDefault(commandIdentifier, unknownCommand);
     }
 }

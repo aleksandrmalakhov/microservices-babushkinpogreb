@@ -1,11 +1,14 @@
 package ru.relex.command;
 
+import lombok.AccessLevel;
 import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.relex.service.ProducerService;
 
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class NoCommand implements Command {
-    private final ProducerService producerService;
+    final ProducerService producerService;
     public static final String NO_MESSAGE = "Я поддерживаю команды, начинающиеся со слеша(/).\n"
             + "Чтобы посмотреть список команд введите /help";
 

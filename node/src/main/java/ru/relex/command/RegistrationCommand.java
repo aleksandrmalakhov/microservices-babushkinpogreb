@@ -1,10 +1,13 @@
 package ru.relex.command;
 
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.relex.service.ProducerService;
 
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class RegistrationCommand implements Command {
-    private final ProducerService producerService;
+    final ProducerService producerService;
 
     public RegistrationCommand(ProducerService producerService) {
         this.producerService = producerService;
