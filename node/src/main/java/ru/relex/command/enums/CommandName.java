@@ -8,6 +8,7 @@ public enum CommandName {
     PHOTO("/myphoto"),
     DOC("/mydoc"),
     CANCEL("/cancel"),
+    DELETE("/delete"),
     NO("noCommand"),
     ERROR("error");
 

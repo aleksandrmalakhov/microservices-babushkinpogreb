@@ -21,6 +21,7 @@ public class HelpCommand implements Command {
                     %s - регистрация
                     %s - мои фотографии
                     %s - мои документы
+                    %s - удалить мои данные
                     """,
             START.getCommandName(),
             STOP.getCommandName(),
@@ -28,7 +29,8 @@ public class HelpCommand implements Command {
             CANCEL.getCommandName(),
             REGISTRATION.getCommandName(),
             PHOTO.getCommandName(),
-            DOC.getCommandName());
+            DOC.getCommandName(),
+            DELETE.getCommandName());
 
     public HelpCommand(ProducerService producerService) {
         this.producerService = producerService;

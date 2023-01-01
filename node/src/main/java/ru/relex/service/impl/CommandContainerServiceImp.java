@@ -33,6 +33,7 @@ public class CommandContainerServiceImp implements CommandContainerService {
                 .put(REGISTRATION.getCommandName(), new RegistrationCommand(producerService))
                 .put(PHOTO.getCommandName(), new MyPhotoCommand(appUserDAO, appPhotoDAO, producerService, fileService))
                 .put(DOC.getCommandName(), new MyDocCommand(appUserDAO, appDocumentDAO, fileService, producerService))
+                .put(DELETE.getCommandName(), new DeleteMyData(appUserDAO, producerService))
                 .put(NO.getCommandName(), new NoCommand(producerService))
                 .put(ERROR.getCommandName(), new ErrorCommand(producerService))
                 .build();
