@@ -24,7 +24,7 @@ public class MailSenderServiceImp implements MailSenderService {
 
     @Override
     public void send(MailParams mailParams) {
-        var subject = "";
+        var subject = "Активация учетной записи";
         var messageBody = getActivationMailBody(mailParams.getId());
         var emailTo = mailParams.getEmailTo();
 
