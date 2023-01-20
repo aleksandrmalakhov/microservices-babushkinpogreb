@@ -12,11 +12,11 @@ import java.util.List;
 
 @Getter
 @Setter
-@EqualsAndHashCode(exclude = "id")
 @Builder
-@AllArgsConstructor
 @Entity
+@AllArgsConstructor
 @Table(name = "app_user")
+@EqualsAndHashCode(exclude = "id")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AppUser {
     @Id

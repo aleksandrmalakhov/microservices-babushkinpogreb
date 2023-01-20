@@ -33,14 +33,30 @@ public class MyPhotoCommand implements Command {
         StringBuilder builder = new StringBuilder();
         var chatId = update.getMessage().getChatId();
         var telegramUser = update.getMessage().getFrom();
-        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
-        List<AppPhoto> photoList = appPhotoDAO.findAppPhotosByAppUser(appUser);
+        var appUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        for (int i = 0; i < photoList.size(); i++) {
-            var linkName = "Ссылка на фото № " + (i + 1);
-            var link = fileService.generateLink(photoList.get(i).getId(), LinkType.GET_PHOTO, linkName);
-            builder.append(link).append("\n");
-        }
+        appUser.ifPresentOrElse((user) -> {
+            List<AppPhoto> photoList = appPhotoDAO.findAppPhotosByAppUser(user);
+
+            if (photoList == null || photoList.size() == 0) {
+                builder.append("У вас нет сохраненных фото");
+            } else {
+                for (int i = 0; i < photoList.size(); i++) {
+                    var linkName = "Ссылка на фото № " + (i + 1);
+                    var link = fileService.generateLink(photoList.get(i).getId(), LinkType.GET_PHOTO, linkName);
+                    builder.append(link).append("\n");
+                }
+            }
+        }, () -> builder.append("Мы вас не нашли в нашей базе. Зарегистрируйтесь"));
+
+//        if (appUser.isPresent())
+//            List<AppPhoto> photoList = appPhotoDAO.findAppPhotosByAppUser(appUser.get());
+//
+//        for (int i = 0; i < photoList.size(); i++) {
+//            var linkName = "Ссылка на фото № " + (i + 1);
+//            var link = fileService.generateLink(photoList.get(i).getId(), LinkType.GET_PHOTO, linkName);
+//            builder.append(link).append("\n");
+//        }
         producerService.producerAnswer(builder.toString().trim(), chatId);
     }
 }

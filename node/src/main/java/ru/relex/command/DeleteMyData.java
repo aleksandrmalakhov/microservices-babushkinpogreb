@@ -5,6 +5,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import ru.relex.dao.AppUserDAO;
 import ru.relex.service.ProducerService;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import static lombok.AccessLevel.PRIVATE;
 
 @FieldDefaults(level = PRIVATE)
@@ -20,18 +22,16 @@ public class DeleteMyData implements Command {
 
     @Override
     public void execute(Update update) {
-        var text = "";
+        AtomicReference<String> text = new AtomicReference<>();
         var chatId = update.getMessage().getChatId();
         var telegramUser = update.getMessage().getFrom();
-        var persistentAppUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
+        var persistentAppUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        if (persistentAppUser != null) {
-            appUserDAO.delete(persistentAppUser);
-            text = "Ваши данные успешно удалены";
-        } else {
-            text = "Ваши данные не найдены";
-        }
+        persistentAppUser.ifPresentOrElse((user) -> {
+            appUserDAO.delete(user);
+            text.set("Ваши данные успешно удалены");
+        }, () -> text.set("Ваши данные не найдены"));
 
-        producerService.producerAnswer(text, chatId);
+        producerService.producerAnswer(text.get(), chatId);
     }
 }

@@ -8,6 +8,7 @@ import ru.relex.command.*;
 import ru.relex.dao.AppDocumentDAO;
 import ru.relex.dao.AppPhotoDAO;
 import ru.relex.dao.AppUserDAO;
+import ru.relex.service.AppUserService;
 import ru.relex.service.CommandContainerService;
 import ru.relex.service.FileService;
 import ru.relex.service.ProducerService;
@@ -24,16 +25,18 @@ public class CommandContainerServiceImp implements CommandContainerService {
                                       AppPhotoDAO appPhotoDAO,
                                       AppDocumentDAO appDocumentDAO,
                                       ProducerService producerService,
+                                      AppUserService userService,
                                       FileService fileService) {
         this.commandMap = ImmutableMap.<String, Command>builder()
                 .put(START.getCommandName(), new StartCommand(appUserDAO, producerService))
                 .put(STOP.getCommandName(), new StopCommand(appUserDAO, producerService))
                 .put(HELP.getCommandName(), new HelpCommand(producerService))
                 .put(CANCEL.getCommandName(), new CancelCommand(appUserDAO, producerService))
-                .put(REGISTRATION.getCommandName(), new RegistrationCommand(producerService))
+                .put(REGISTRATION.getCommandName(), new RegistrationCommand(appUserDAO, userService, producerService))
                 .put(PHOTO.getCommandName(), new MyPhotoCommand(appUserDAO, appPhotoDAO, producerService, fileService))
                 .put(DOC.getCommandName(), new MyDocCommand(appUserDAO, appDocumentDAO, fileService, producerService))
                 .put(DELETE.getCommandName(), new DeleteMyData(appUserDAO, producerService))
+                .put(SET_EMAIL.getCommandName(), new SetEmailCommand(appUserDAO, userService, producerService))
                 .put(NO.getCommandName(), new NoCommand(producerService))
                 .put(ERROR.getCommandName(), new ErrorCommand(producerService))
                 .build();

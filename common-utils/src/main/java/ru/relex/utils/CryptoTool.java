@@ -1,4 +1,4 @@
-package ru.relex;
+package ru.relex.utils;
 
 import org.hashids.Hashids;
 

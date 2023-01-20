@@ -10,7 +10,8 @@ public enum CommandName {
     CANCEL("/cancel"),
     DELETE("/delete"),
     NO("noCommand"),
-    ERROR("error");
+    ERROR("error"),
+    SET_EMAIL("setEmail");
 
     private final String commandName;
 

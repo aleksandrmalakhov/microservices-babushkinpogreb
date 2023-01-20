@@ -20,20 +20,18 @@ public class CancelCommand implements Command {
 
     @Override
     public void execute(Update update) {
-        var text = "";
         var chatId = update.getMessage().getChatId();
         var telegramUser = update.getMessage().getFrom();
-        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
+        var appUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        if (appUser != null) {
-            appUser.setUserState(BASIC_STATE);
-            appUserDAO.save(appUser);
+        appUser.ifPresentOrElse((user) -> {
+            user.setUserState(BASIC_STATE);
+            appUserDAO.save(user);
 
-            text = "Команда отменена.";
+            producerService.producerAnswer("Команда отменена", chatId);
+        }, () -> {
+            var text = telegramUser.getFirstName() + ", ваших данных нет в базе.\n Введи команду /start и начнем наше знакомство!";
             producerService.producerAnswer(text, chatId);
-        } else {
-            text = telegramUser.getFirstName() + ", ваших данных нет в базе.\n Введи команду /start и начнем наше знакомство!";
-            producerService.producerAnswer(text, chatId);
-        }
+        });
     }
 }

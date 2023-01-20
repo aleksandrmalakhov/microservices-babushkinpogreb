@@ -1,5 +1,6 @@
 package ru.relex.service.impl;
 
+import lombok.experimental.FieldDefaults;
 import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -16,17 +17,21 @@ import ru.relex.service.MainService;
 import ru.relex.service.ProducerService;
 import ru.relex.service.enums.LinkType;
 
+import java.util.Optional;
+
+import static lombok.AccessLevel.PRIVATE;
 import static ru.relex.entity.enums.UserState.BASIC_STATE;
 import static ru.relex.entity.enums.UserState.WAIT_FOR_EMAIL_STATE;
 
 @Log4j
 @Service
+@FieldDefaults(level = PRIVATE)
 public class MainServiceImp implements MainService {
-    private final RawDataDAO rawDataDAO;
-    private final ProducerService producerService;
-    private final AppUserDAO appUserDAO;
-    private final FileService fileService;
-    private final CommandContainerService commandContainer;
+    final RawDataDAO rawDataDAO;
+    final AppUserDAO appUserDAO;
+    final FileService fileService;
+    final ProducerService producerService;
+    final CommandContainerService commandContainer;
 
     public MainServiceImp(RawDataDAO rawDataDAO,
                           ProducerService producerService,
@@ -43,29 +48,33 @@ public class MainServiceImp implements MainService {
     @Override
     public void processTextMessage(Update update) {
         var commandPrefix = "/";
-        var message = update.getMessage().getText();
+        var message = update.getMessage();
+        var text = message.getText();
 
         saveRawData(update);
 
-        if (message.startsWith(commandPrefix)) {
-            var commandIdentifier = message.split(" ")[0].toLowerCase();
-
-            System.out.println("Main service - " + commandIdentifier);
-
+        if (text.startsWith(commandPrefix)) {
+            var commandIdentifier = text.split(" ")[0].toLowerCase();
             commandContainer.retrieveCommand(commandIdentifier).execute(update);
         } else {
-            var telegramUser = update.getMessage().getFrom();
-            var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
-            var userState = appUser.getUserState();
+            var appUser = appUserDAO.findByTelegramUserId(update.getMessage().getFrom().getId());
 
-            if (userState.equals(WAIT_FOR_EMAIL_STATE)) {
-                //TODO добавить обработку емэйла
-            } else if (userState.equals(BASIC_STATE)) {
-                commandContainer.retrieveCommand("noCommand").execute(update);
-            } else {
-                log.error("Unknown user state: " + userState);
-                commandContainer.retrieveCommand("error").execute(update);
-            }
+            appUser.ifPresentOrElse((user) -> {
+                var userState = user.getUserState();
+
+                if (userState.equals(WAIT_FOR_EMAIL_STATE)) {
+                    commandContainer.retrieveCommand("setEmail").execute(update);
+                } else if (userState.equals(BASIC_STATE)) {
+                    commandContainer.retrieveCommand("noCommand").execute(update);
+                } else {
+                    log.error("Unknown user state: " + userState);
+                    commandContainer.retrieveCommand("error").execute(update);
+                }
+            }, () -> {
+                var msg = "Ваших данных нет в базе. Введите /start для начала работы";
+                var chatId = message.getChatId();
+                producerService.producerAnswer(msg, chatId);
+            });
         }
     }
 
@@ -76,12 +85,13 @@ public class MainServiceImp implements MainService {
 
         var chatId = update.getMessage().getChatId();
         var appUser = userValidated(chatId, update);
-        if (appUser == null) {
+
+        if (appUser.isEmpty() || !appUser.get().getIsActive()) {
             return;
         }
 
         try {
-            AppDocument doc = fileService.processDoc(update, appUser);
+            AppDocument doc = fileService.processDoc(update, appUser.get());
             String link = fileService.generateLink(doc.getId(), LinkType.GET_DOC, "doc");
             text = "Документ успешно загружен! Ссылка для скачивания: " + link;
         } catch (UploadFileException ex) {
@@ -98,12 +108,13 @@ public class MainServiceImp implements MainService {
 
         var chatId = update.getMessage().getChatId();
         var appUser = userValidated(chatId, update);
-        if (appUser == null) {
+
+        if (appUser.isEmpty() || !appUser.get().getIsActive()) {
             return;
         }
 
         try {
-            AppPhoto photo = fileService.processPhoto(update, appUser);
+            AppPhoto photo = fileService.processPhoto(update, appUser.get());
             String link = fileService.generateLink(photo.getId(), LinkType.GET_PHOTO, "photo");
             text = "Фото успешно загружено! Ссылка для скачивания: " + link;
         } catch (UploadFileException ex) {
@@ -113,22 +124,24 @@ public class MainServiceImp implements MainService {
         producerService.producerAnswer(text, chatId);
     }
 
-    private AppUser userValidated(Long chatId, Update update) {
+    private Optional<AppUser> userValidated(Long chatId, Update update) {
         var telegramUser = update.getMessage().getFrom();
-        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
+        var appUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        if (appUser == null) {
+        appUser.ifPresentOrElse((user) -> {
+            if (!user.getIsActive()) {
+                var error = "Активируйте свою учетную запись с помощью команды /registration для загрузки контента.";
+                producerService.producerAnswer(error, chatId);
+            }
+
+            if (!user.getUserState().equals(BASIC_STATE)) {
+                var error = "Отмените текущую команду с помощью /cancel для отправки файлов.";
+                producerService.producerAnswer(error, chatId);
+            }
+        }, () -> {
             var error = "Зарегистрируйтесь с помощью команды /start для загрузки контента.";
             producerService.producerAnswer(error, chatId);
-        } else if (!appUser.getIsActive()) {
-            var error = "Активируйте свою учетную запись для загрузки контента.";
-            producerService.producerAnswer(error, chatId);
-        } else if (!appUser.getUserState().equals(BASIC_STATE)) {
-            var error = "Отмените текущую команду с помощью /cancel для отправки файлов.";
-            producerService.producerAnswer(error, chatId);
-        } else {
-            return appUser;
-        }
+        });
         return appUser;
     }
 

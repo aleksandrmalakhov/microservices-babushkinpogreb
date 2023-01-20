@@ -9,6 +9,7 @@ import ru.relex.command.enums.CommandName;
 import ru.relex.dao.AppDocumentDAO;
 import ru.relex.dao.AppPhotoDAO;
 import ru.relex.dao.AppUserDAO;
+import ru.relex.service.AppUserService;
 import ru.relex.service.FileService;
 import ru.relex.service.ProducerService;
 import ru.relex.service.impl.CommandContainerServiceImp;
@@ -27,6 +28,7 @@ public class CommandContainerTest {
         AppPhotoDAO appPhotoDAO = Mockito.mock(AppPhotoDAO.class);
         AppDocumentDAO appDocumentDAO = Mockito.mock(AppDocumentDAO.class);
         ProducerService producerService = Mockito.mock(ProducerService.class);
+        AppUserService userService = Mockito.mock(AppUserService.class);
         FileService fileService = Mockito.mock(FileService.class);
 
         commandContainer = new CommandContainerServiceImp(
@@ -34,6 +36,7 @@ public class CommandContainerTest {
                 appPhotoDAO,
                 appDocumentDAO,
                 producerService,
+                userService,
                 fileService);
     }
 

@@ -19,20 +19,18 @@ public class StopCommand implements Command {
 
     @Override
     public void execute(@NonNull Update update) {
-        var text = "";
         var chatId = update.getMessage().getChatId();
         var telegramUser = update.getMessage().getFrom();
-        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
+        var appUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        if (appUser != null) {
-            appUser.setIsActive(false);
-            appUserDAO.save(appUser);
+        appUser.ifPresentOrElse((user) -> {
+            user.setIsActive(false);
+            appUserDAO.save(user);
 
-            text = appUser.getFirstName() + ", до новых встреч!";
+            producerService.producerAnswer(user.getFirstName() + ", до новых встреч!", chatId);
+        }, () -> {
+            var text = telegramUser.getFirstName() + ", ваших данных нет в базе.\n Введи команду /start и начнем наше знакомство!";
             producerService.producerAnswer(text, chatId);
-        } else {
-            text = telegramUser.getFirstName() + ", ваших данных нет в базе.\n Введи команду /start и начнем наше знакомство!";
-            producerService.producerAnswer(text, chatId);
-        }
+        });
     }
 }

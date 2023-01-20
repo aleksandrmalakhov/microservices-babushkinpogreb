@@ -34,14 +34,22 @@ public class MyDocCommand implements Command {
         StringBuilder builder = new StringBuilder();
         var chatId = update.getMessage().getChatId();
         var telegramUser = update.getMessage().getFrom();
-        var appUser = appUserDAO.findAppUserByTelegramUserId(telegramUser.getId());
-        List<AppDocument> documents = appDocumentDAO.findAppDocumentsByAppUser(appUser);
+        var appUser = appUserDAO.findByTelegramUserId(telegramUser.getId());
 
-        for (int i = 0; i < documents.size(); i++) {
-            var linkName = "Ссылка на документ № " + (i + 1);
-            var link = fileService.generateLink(documents.get(i).getId(), LinkType.GET_DOC, linkName);
-            builder.append(link).append("\n");
-        }
+        appUser.ifPresentOrElse((user) -> {
+            List<AppDocument> documentList = appDocumentDAO.findAppDocumentsByAppUser(user);
+
+            if (documentList == null || documentList.size() == 0) {
+                builder.append("У вас нет сохраненных документов");
+            } else {
+                for (int i = 0; i < documentList.size(); i++) {
+                    var linkName = "Ссылка на документ № " + (i + 1);
+                    var link = fileService.generateLink(documentList.get(i).getId(), LinkType.GET_DOC, linkName);
+                    builder.append(link).append("\n");
+                }
+            }
+        }, () -> builder.append("Мы вас не нашли в нашей базе. Зарегистрируйтесь"));
+
         producerService.producerAnswer(builder.toString().trim(), chatId);
     }
 }
